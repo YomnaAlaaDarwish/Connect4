@@ -33,7 +33,7 @@ Piece_Of_AI = 2
 Length_Of_Window = 4
 
 
-###################
+
 
 
 def Verify_Game_Over(Board, P):
@@ -124,7 +124,7 @@ def displayBoard(Board):
 def isAvailablePlace(Board, Column):
     return Board[Count_Of_Row - 1][Column] == 0
 
-################################################################################################################
+
 
 def Assess_Value_Window(screen, bit):
     total = 0
@@ -148,7 +148,7 @@ def Assess_Value_Window(screen, bit):
     return total
 
 
-def getAvailablePlaces(Board):  # get_valid_locations(board)
+def getAvailablePlaces(Board):
     avilablePlaces = []
     for Column in range(Count_Of_Column):
         if isAvailablePlace(Board, Column):
@@ -161,7 +161,7 @@ def Check_Terminal_Node(GameBoard):
         getAvailablePlaces(GameBoard)) == 0
 
 
-def selectMove(Board, P):  # pick_best_move(board, piece)
+def selectMove(Board, P):
     availPlaces = getAvailablePlaces(Board)
     BScore = -10000  # best score
     BColumn = random.choice(availPlaces)
@@ -268,17 +268,167 @@ def AlphaBeta_Algo(board, depth, alpha, beta, maximizingPlayer):
 def draw_board(board):
     for c in range(Count_Of_Column):
         for r in range(Count_Of_Row):
-            pygame.draw.rect(screen, Blue, (c * SQUARESIZE, r * SQUARESIZE + SQUARESIZE, SQUARESIZE, SQUARESIZE))
+            pygame.draw.rect(screen, Blue, (c * S_SIZE, r * S_SIZE + S_SIZE, S_SIZE, S_SIZE))
             pygame.draw.circle(screen, Black, (
-                int(c * SQUARESIZE + SQUARESIZE / 2), int(r * SQUARESIZE + SQUARESIZE + SQUARESIZE / 2)), RADIUS)
+                int(c * S_SIZE + S_SIZE / 2), int(r * S_SIZE + S_SIZE + S_SIZE / 2)), RAD)
 
     for c in range(Count_Of_Column):
         for r in range(Count_Of_Row):
             if board[r][c] == Piece_Of_Computer:
                 pygame.draw.circle(screen, Red_Color, (
-                    int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
+                    int(c * S_SIZE + S_SIZE / 2), height - int(r * S_SIZE + S_SIZE / 2)), RAD)
             elif board[r][c] == Piece_Of_AI:
                 pygame.draw.circle(screen, Yellow_color, (
-                    int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
+                    int(c * S_SIZE + S_SIZE / 2), height - int(r * S_SIZE + S_SIZE / 2)), RAD)
     pygame.display.update()
 
+#main#
+
+board = MakeBoard()
+displayBoard(board)
+
+pygame.init()
+
+S_SIZE = 100
+myfont = pygame.font.SysFont("monospace", 75)
+width = Count_Of_Column * S_SIZE
+height = (Count_Of_Row + 1) * S_SIZE
+
+size = (width, height)
+
+RAD = int(S_SIZE / 2 - 5)
+
+screen = pygame.display.set_mode(size)
+draw_board(board)
+pygame.display.update()
+
+MiniMax_Exec_time = []
+AlphaBeta_Exec_time = []
+
+
+def start(level, m):
+    game_over = False
+    turn = random.randint(Computer_Player, AI_Agent)
+    while not game_over:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+            if event.type == pygame.MOUSEMOTION:
+                pygame.draw.rect(screen, Black, (0, 0, width, S_SIZE))
+                posx = event.pos[0]
+                if turn == Computer_Player:
+                    pygame.draw.circle(screen, Red_Color, (posx, int(S_SIZE / 2)), RAD)
+
+            pygame.display.update()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.draw.rect(screen, Black, (0, 0, width, S_SIZE))
+
+            ### Performance
+            if turn == Computer_Player:
+                ST = time.time()
+                col = random.choice(getAvailablePlaces(board))
+                row = getNextRow(board, col)
+                removePiece(board, row, col, Piece_Of_Computer)
+                ET = time.time() - ST
+                MiniMax_Exec_time.append(ET)
+
+                if Verify_Game_Over(board, Piece_Of_Computer):
+                    label = myfont.render("Computer wins!!", 1, Yellow_color)
+                    screen.blit(label, (40, 10))
+                    game_over = True
+
+                turn += 1
+                turn = turn % 2
+
+                displayBoard(board)
+                draw_board(board)
+            # # Ask for Player 2 Input
+            if turn == AI_Agent and not game_over:
+                if (m == 1):
+                    startMinimax = time.time()
+                    col, minimax_score = Minimax_Algo(board, level, True)
+                    ET1 = time.time() - startMinimax
+                    MiniMax_Exec_time.append(ET1)
+                    # else:
+                    startAlpha = time.time()
+                    col, minimax_score = AlphaBeta_Algo(board, level, -math.inf, math.inf, True)
+                    ET2 = time.time() - startAlpha
+                    AlphaBeta_Exec_time.append(ET2)
+                if isAvailablePlace(board, col):
+                    # pygame.time.wait(500)
+                    row = getNextRow(board, col)
+                    removePiece(board, row, col, Piece_Of_AI)
+
+                    if Verify_Game_Over(board, Piece_Of_AI):
+                        label = myfont.render("Player 2 wins!!", 1, Yellow_color)
+                        screen.blit(label, (40, 10))
+                        game_over = True
+
+                    displayBoard(board)
+                    draw_board(board)
+
+                    turn += 1
+                    turn = turn % 2
+
+        if game_over:
+            pygame.time.wait(3000)
+
+        plt.plot(range(1, len(MiniMax_Exec_time) + 1), MiniMax_Exec_time, label='Minimax')
+        plt.plot(range(1, len(AlphaBeta_Exec_time) + 1), AlphaBeta_Exec_time, label='Alpha-Beta')
+        plt.xlabel('Move')
+        plt.ylabel('Execution Time (seconds)')
+        plt.title('Performance Mesaures')
+        plt.legend()
+        plt.show()
+
+
+#####gui #####
+
+def fun1():
+    rect_output.config(text="applying minimax ")
+    m = int(m_entry.get())
+    start(m, 1)
+
+
+def fun2():
+    rect_output.config(text="applying alpha beta")
+    m = int(m_entry.get())
+    start(m, 2)
+
+
+def fun3():
+    rect_output.config(text="Minimax & alpha beta")
+    m = int(m_entry.get())
+    start(m, 1)
+    start(m, 2)
+
+
+root = Tk()
+root.title('project')
+
+# labels
+m_label = Label(root, text='Enter difficulty level of the game:')
+m_entry = Entry(root)
+
+rect_output_label = Label(root, text='result:')
+
+# output label
+rect_output = Label(root, text="")
+# button
+
+create_board_btn = Button(root, text='minimax', command=fun1)
+create_board_btn2 = Button(root, text='alpha-beta', command=fun2)
+create_board_btn3 = Button(root, text='Minimax & alpha beta', command=fun3)
+
+# grid
+m_label.grid(row=0, column=0)
+m_entry.grid(row=0, column=1)
+create_board_btn.grid(row=6, column=0, columnspan=2)
+create_board_btn2.grid(row=6, column=1, columnspan=1)
+rect_output_label.grid(row=7, column=0)
+rect_output.grid(row=8, column=1)
+
+root.mainloop()
