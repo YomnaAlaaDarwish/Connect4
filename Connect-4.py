@@ -352,7 +352,7 @@ def start(level, m):
                     col, minimax_score = Minimax_Algo(board, level, True)
                     ET1 = time.time() - startMinimax
                     MiniMax_Exec_time.append(ET1)
-                    # else:
+                else:
                     startAlpha = time.time()
                     col, minimax_score = AlphaBeta_Algo(board, level, -math.inf, math.inf, True)
                     ET2 = time.time() - startAlpha
